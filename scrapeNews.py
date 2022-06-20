@@ -53,8 +53,9 @@ def getYahooArticleText(url: str) -> dict[str, str | list]:
         pageUrl = url + "?page=" + str(pageNumber)
         html_doc = requests.get(pageUrl).text
         soup = BeautifulSoup(html_doc, 'lxml')
-        text = soup.select("div>div>main>div>div>article>div")[
-            0].get_text()
+        for a in soup.select('a:not(.pagination_item.pagination_item-next>a)'):
+            a.extract()
+        text = [{"tag":v.name ,"text":v.get_text()}   for v in soup.select(".article_body.highLightSearchTarget>div>p,h2") if not v.get_text() == '']   
         textList.append(text)
 
         if not hasYahooNextPage(pageUrl, soup):
@@ -81,7 +82,6 @@ def hasYahooNextPage(url: str, soup: BeautifulSoup) -> bool:
 
 
 if __name__ == "__main__":
-    heading = getYahooHeading()[0]["url"]
-    article = getYahooArticleFromPickUp(heading)
+    article = "https://news.yahoo.co.jp/articles/f6a7dfefa9eac8135a8853d0b424601796737cdd"
     articleTextList = getYahooArticleText(article)
     print(articleTextList)
