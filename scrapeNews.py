@@ -1,7 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
-
-
+from functools import reduce
+import json
+import codecs
 def getYahooHeading() -> list[dict[str, str]]:
     """Yahooの見出しのタイトルとURLを取得する関数
 
@@ -14,7 +15,7 @@ def getYahooHeading() -> list[dict[str, str]]:
     url = "https://news.yahoo.co.jp/"
     html_doc = requests.get(url).text
     soup = BeautifulSoup(html_doc, "lxml")
-    heading = soup.find(id="uamods-topics")
+    heading = soup.select_one("#uamods-topics>div>div>div>ul")
 
     return [{"title": link.get_text(), "url": link.get("href")} for link in heading.find_all('a')]
 
@@ -55,7 +56,9 @@ def getYahooArticleText(url: str) -> dict[str, str | list]:
         soup = BeautifulSoup(html_doc, 'lxml')
         for a in soup.select('a:not(.pagination_item.pagination_item-next>a)'):
             a.extract()
-        text = [{"tag":v.name ,"text":v.get_text()}   for v in soup.select(".article_body.highLightSearchTarget>div>p,h2") if not v.get_text() == '']   
+
+        # h2タグとpを区別する方　text = [{"tag":v.name ,"text":v.get_text()}   for v in soup.select(".article_body.highLightSearchTarget>div>p,h2") if not v.get_text() == '']   
+        text  = soup.select(".article_body.highLightSearchTarget")[0].get_text()
         textList.append(text)
 
         if not hasYahooNextPage(pageUrl, soup):
@@ -80,8 +83,27 @@ def hasYahooNextPage(url: str, soup: BeautifulSoup) -> bool:
     nextPage = soup.select(".pagination_item.pagination_item-next>a")
     return len(nextPage) != 0
 
+def getYahooAllTopics(date):
+    url = "https://news.yahoo.co.jp/topics/top-picks?date="+date
+    html_doc = requests.get(url).text
+    soup = BeautifulSoup(html_doc, "lxml")
+    topics = soup.select(".newsFeed_item_link")
+    print(topics)
+    return [{"title": link.get_text(), "url": link.get("href")} for link in topics]
+
 
 if __name__ == "__main__":
-    article = "https://news.yahoo.co.jp/articles/f6a7dfefa9eac8135a8853d0b424601796737cdd"
-    articleTextList = getYahooArticleText(article)
-    print(articleTextList)
+    articleList = []
+    for topic in getYahooHeading():
+
+        article = getYahooArticleFromPickUp(topic["url"])
+        articleTextList = getYahooArticleText(article)
+        title = articleTextList["title"]
+        text =  reduce(lambda a,b:a+b,articleTextList["textList"])
+
+        articleList.append({"title":title,"text":text,"url":article})
+    articleListJson = json.dumps(articleList,ensure_ascii=False )
+    fileName = "articleList.json"
+    file = codecs.open(fileName, 'w','utf-8')
+    
+    file.write(articleListJson)
