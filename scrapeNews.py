@@ -47,27 +47,30 @@ def getYahooArticleText(url: str) -> dict[str, str | list]:
             textList(list[str]):ページごとの本文のリスト
     """
 
-    pageNumber = 1
-    textList = []
-    title = ""
-    while(True):
-        pageUrl = url + "?page=" + str(pageNumber)
-        html_doc = requests.get(pageUrl).text
-        soup = BeautifulSoup(html_doc, 'lxml')
-        for a in soup.select('a:not(.pagination_item.pagination_item-next>a)'):
-            a.extract()
+    try:
 
-        # h2タグとpを区別する方　text = [{"tag":v.name ,"text":v.get_text()}   for v in soup.select(".article_body.highLightSearchTarget>div>p,h2") if not v.get_text() == '']   
-        text  = soup.select(".article_body.highLightSearchTarget")[0].get_text()
-        textList.append(text)
+        pageNumber = 1
+        textList = []
+        title = ""
+        while(True):
+            pageUrl = url + "?page=" + str(pageNumber)
+            html_doc = requests.get(pageUrl).text
+            soup = BeautifulSoup(html_doc, 'lxml')
+            for a in soup.select('a:not(.pagination_item.pagination_item-next>a)'):
+                a.extract()
 
-        if not hasYahooNextPage(pageUrl, soup):
-            title = soup.select("#uamods>header>h1")[0].get_text()
-            break
-        pageNumber += 1
+            # h2タグとpを区別する方　text = [{"tag":v.name ,"text":v.get_text()}   for v in soup.select(".article_body.highLightSearchTarget>div>p,h2") if not v.get_text() == '']   
+            text  = soup.select(".article_body.highLightSearchTarget")[0].get_text()
+            textList.append(text)
 
-    return {"title": title, "textList": textList}
+            if not hasYahooNextPage(pageUrl, soup):
+                title = soup.select("#uamods>header>h1")[0].get_text()
+                break
+            pageNumber += 1
 
+        return {"title": title, "textList": textList}
+    except IndexError:
+        return None
 
 def hasYahooNextPage(url: str, soup: BeautifulSoup) -> bool:
     """記事に次のページがあるか判定する関数
@@ -84,20 +87,35 @@ def hasYahooNextPage(url: str, soup: BeautifulSoup) -> bool:
     return len(nextPage) != 0
 
 def getYahooAllTopics(date):
-    url = "https://news.yahoo.co.jp/topics/top-picks?date="+date
-    html_doc = requests.get(url).text
-    soup = BeautifulSoup(html_doc, "lxml")
-    topics = soup.select(".newsFeed_item_link")
-    print(topics)
-    return [{"title": link.get_text(), "url": link.get("href")} for link in topics]
+
+    
+    pageNumber = 1
+    all_topics = []
+
+    while(True):
+        url = "https://news.yahoo.co.jp/topics/top-picks?date="+date  + "&page=" + str(pageNumber)
+
+        html_doc = requests.get(url).text
+        soup = BeautifulSoup(html_doc, "lxml")
+        topics = soup.select(".newsFeed_item_link")
+        # print(topics)
+        all_topics += [{"title": link.get_text(), "url": link.get("href")} for link in topics]
+        if not hasYahooNextPage(url, soup):
+            print(all_topics)
+            break
+        pageNumber += 1
+
+    return all_topics
 
 
 if __name__ == "__main__":
     articleList = []
-    for topic in getYahooHeading():
+    for topic in getYahooAllTopics("20220621"):
 
         article = getYahooArticleFromPickUp(topic["url"])
         articleTextList = getYahooArticleText(article)
+        if articleTextList == None:
+            continue
         title = articleTextList["title"]
         text =  reduce(lambda a,b:a+b,articleTextList["textList"])
 
