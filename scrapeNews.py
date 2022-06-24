@@ -51,23 +51,28 @@ def getYahooArticleText(url: str) -> Dict[str, str | List]:
     pageNumber = 1
     textList = []
     title = ""
-    while(True):
-        pageUrl = url + "?page=" + str(pageNumber)
-        html_doc = requests.get(pageUrl).text
-        soup = BeautifulSoup(html_doc, 'lxml')
-        for a in soup.select('a:not(.pagination_item.pagination_item-next>a)'):
-            a.extract()
+    try:
+        while(True):
+            pageUrl = url + "?page=" + str(pageNumber)
+            html_doc = requests.get(pageUrl).text
+            soup = BeautifulSoup(html_doc, 'lxml')
+            for a in soup.select('a:not(.pagination_item.pagination_item-next>a)'):
+                a.extract()
 
-        # h2タグとpを区別する方　text = [{"tag":v.name ,"text":v.get_text()}   for v in soup.select(".article_body.highLightSearchTarget>div>p,h2") if not v.get_text() == '']   
-        text  = soup.select(".article_body.highLightSearchTarget")[0].get_text()
-        textList.append(text)
+            # h2タグとpを区別する方　text = [{"tag":v.name ,"text":v.get_text()}   for v in soup.select(".article_body.highLightSearchTarget>div>p,h2") if not v.get_text() == '']
+            text = soup.select(".article_body.highLightSearchTarget")[
+                0].get_text()
+            textList.append(text)
 
-        if not hasYahooNextPage(pageUrl, soup):
-            title = soup.select("#uamods>header>h1")[0].get_text()
-            break
-        pageNumber += 1
+            if not hasYahooNextPage(pageUrl, soup):
+                title = soup.select("#uamods>header>h1")[0].get_text()
+                break
+            pageNumber += 1
 
-    return {"title": title, "textList": textList}
+        return {"title": title, "textList": textList}
+
+    except IndexError:
+        return {"title": "", "textList":[""]}
 
 
 def hasYahooNextPage(url: str, soup: BeautifulSoup) -> bool:
@@ -110,11 +115,11 @@ if __name__ == "__main__":
         article = getYahooArticleFromPickUp(topic["url"])
         articleTextList = getYahooArticleText(article)
         title = articleTextList["title"]
-        text =  reduce(lambda a,b:a+b,articleTextList["textList"])
+        text = reduce(lambda a, b: a+b, articleTextList["textList"])
 
-        articleList.append({"title":title,"text":text,"url":article})
-    articleListJson = json.dumps(articleList,ensure_ascii=False )
+        articleList.append({"title": title, "text": text, "url": article})
+    articleListJson = json.dumps(articleList, ensure_ascii=False)
     fileName = "articleList.json"
-    file = codecs.open(fileName, 'w','utf-8')
-    
+    file = codecs.open(fileName, 'w', 'utf-8')
+
     file.write(articleListJson)
