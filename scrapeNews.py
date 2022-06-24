@@ -3,7 +3,8 @@ from bs4 import BeautifulSoup
 from functools import reduce
 import json
 import codecs
-def getYahooHeading() -> list[dict[str, str]]:
+from typing import List,Dict
+def getYahooHeading() -> List[Dict[str, str]]:
     """Yahooの見出しのタイトルとURLを取得する関数
 
     Returns:
@@ -35,7 +36,7 @@ def getYahooArticleFromPickUp(url: str) -> str:
     return link
 
 
-def getYahooArticleText(url: str) -> dict[str, str | list]:
+def getYahooArticleText(url: str) -> Dict[str, str | List]:
     """記事本文を取得する関数
 
     Args:
@@ -83,7 +84,17 @@ def hasYahooNextPage(url: str, soup: BeautifulSoup) -> bool:
     nextPage = soup.select(".pagination_item.pagination_item-next>a")
     return len(nextPage) != 0
 
-def getYahooAllTopics(date):
+def getYahooAllTopics(date)->List[Dict[str,str]]:
+    """特定の日にちのトピックスすべて取得する関数
+
+    Args:
+        date:取得する日数（日にちが前すぎるとページがないです)
+    Returns:
+        list[dict[str,str]]: 見出しのタイトルとURLの辞書型のリスト
+            dict[str,str]:
+                title: 記事のタイトル
+                url:   記事のURL    
+    """
     url = "https://news.yahoo.co.jp/topics/top-picks?date="+date
     html_doc = requests.get(url).text
     soup = BeautifulSoup(html_doc, "lxml")
