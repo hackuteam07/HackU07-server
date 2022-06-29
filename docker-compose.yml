@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  api:
+    #restart: always
+    build: .
+    container_name: 'HackU7Server'
+    #working_dir: '/app'
+    command: python app/app.py
+    #tty: true
+    command: sh -c 'sudo cp /etc/mecabrc /usr/local/etc/ ; flask run --host 0.0.0.0 --port 8080'
+    volumes:
+      - ./opt:/app
+    ports:
+      - 8080:8080
+    oom_kill_disable: True
