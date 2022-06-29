@@ -1,6 +1,6 @@
 version: '3.9'
 services:
-  web:
+  api:
     #restart: always
     build: .
     container_name: 'HackU7Server'
@@ -12,3 +12,4 @@ services:
       - ./opt:/app
     ports:
       - 8080:8080
+    oom_kill_disable: True
