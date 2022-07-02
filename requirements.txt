@@ -1,0 +1,11 @@
+torch
+torchtext
+torchvision
+transformers==4.4.2
+pytorch_lightning==1.2.1
+sentencepiece
+mecab-python3 
+rouge
+flask[async]
+bs4
+lxml
